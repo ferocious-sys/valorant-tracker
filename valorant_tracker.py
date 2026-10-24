@@ -48,7 +48,7 @@ class Client:
             url += "?" + urllib.parse.urlencode(query)
         request = urllib.request.Request(url, headers={
             "Authorization": self.key, "Accept": "application/json",
-            "User-Agent": "valorant-tracker-cli/0.3.0",
+            "User-Agent": "valorant-tracker-cli/0.4.0",
         })
         try:
             with self.opener(request, timeout=20) as response:
@@ -260,7 +260,7 @@ def port_number(value):
 
 def parser():
     p = argparse.ArgumentParser(description="VALORANT player tracker powered by HenrikDev. Use for yourself or consenting players.")
-    p.add_argument("--version", action="version", version="%(prog)s 0.3.0")
+    p.add_argument("--version", action="version", version="%(prog)s 0.4.0")
     commands = p.add_subparsers(dest="command", required=True)
     for command, description in [("profile", "Account details"), ("rank", "Current rank and peak"),
                                  ("matches", "Recent matches and personal performance"),
@@ -291,10 +291,6 @@ def parser():
     web.set_defaults(command="web")
     web.add_argument("--port", type=port_number, default=8765)
     web.add_argument("--no-browser", action="store_true", help="Start without opening a browser")
-    lock = commands.add_parser("instalock", aliases=["!instalock"], help="Lock an agent in the current Windows game lobby (unofficial)")
-    lock.set_defaults(command="instalock")
-    lock.add_argument("agent")
-    lock.add_argument("--dry-run", action="store_true", help="Check the current lobby without selecting or locking")
     return p
 
 
@@ -334,11 +330,6 @@ def lookup(args, client=None):
 def main(argv=None):
     args = parser().parse_args(argv)
     try:
-        if args.command == "instalock":
-            from valorant_lock import lock_current_agent
-            result = lock_current_agent(args.agent, args.dry_run)
-            print(clean(f"{result['agent']}: {result['status']}"))
-            return 0
         if args.command == "web":
             from valorant_web import serve
             return serve(args.port, not args.no_browser)

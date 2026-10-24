@@ -1,4 +1,4 @@
-﻿# VALORANT Tracker CLI
+# VALORANT Tracker CLI
 
 Check your rank, recent games, and today's RR from your terminal.
 
@@ -10,49 +10,60 @@ Check your rank, recent games, and today's RR from your terminal.
 
 Built with Python and the community [HenrikDev API](https://github.com/Henrik-3/unofficial-valorant-api). No Python runtime dependencies. Use it for your own account or players who have consented.
 
-## Getting started on Windows
+## One-command Windows installation
 
-You need **Python 3.10 or newer**, PowerShell, and a HenrikDev API key. Git is needed only if you clone instead of downloading the repository ZIP.
+Paste this into PowerShell:
 
-### 1. Download the tracker
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/ferocious-sys/valorant-tracker/main/install.ps1 | iex"
+```
+
+This downloads and runs the installer from this repository. You can [review the script](install.ps1) first. Execution-policy bypass applies only to this installer process; it does not change your saved policy.
+
+Setup will:
+
+1. Find Python 3.10+ or install Python 3.13 for your Windows user through Windows Package Manager.
+2. Open the HenrikDev dashboard if no valid key is available. Sign in there, create a Basic API key, and paste it into the installer's hidden prompt.
+3. Validate the key and save it encrypted with Windows DPAPI for your user account.
+4. Download the tracker into `%LOCALAPPDATA%\ValorantTracker`, install PowerShell shortcuts, and open the local web client automatically.
+
+**Key creation is not automatic:** HenrikDev documents a dashboard-based key flow, not an API for third-party key provisioning. Setup never asks for your Riot or Discord password. Existing valid keys are reused. The dashboard may require joining HenrikDev's Discord and entering application details; setup displays suggested details.
+
+Keep the terminal open while using the web client. Press **Ctrl+C** to stop. Later, open PowerShell and run `!web` to start again. Run the same installation command to update; your saved key is reused and older installed versions are retained.
+
+The key is saved at `%LOCALAPPDATA%\ValorantTracker\api-key.xml`. Only the same Windows user on the same computer can decrypt it. The API key is passed to the Python child process in memory. An explicitly set `HENRIK_API_KEY` environment variable takes priority during normal launches.
+
+If Python installation is unavailable, install [Python](https://www.python.org/downloads/windows/) manually and rerun the command. If organizational policy blocks scripts, follow your organization's policy; the installer does not change persistent execution-policy settings.
+
+### Manual installation
 
 ```powershell
 git clone https://github.com/ferocious-sys/valorant-tracker.git
 cd valorant-tracker
-python --version
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -SourceDirectory .
 ```
 
-Alternatively, choose **Code > Download ZIP** on GitHub, extract it, and open PowerShell in the extracted folder.
-
-### 2. Add your own API key
-
-Create a key at the [HenrikDev dashboard](https://api.henrikdev.xyz/dashboard/). Follow the dashboard's account and application steps, then enter the key locally:
+Already have Python and a key? You can also run the source directly:
 
 ```powershell
 $secret = Read-Host 'HenrikDev API key' -AsSecureString
 $env:HENRIK_API_KEY = [System.Net.NetworkCredential]::new('', $secret).Password
+python valorant_tracker.py web
 ```
 
-This sets the key for the current window. To let the shortcuts reuse it in future windows:
+For source-checkout shortcuts, run `.\install-shortcuts.ps1` and `. .\shortcuts.ps1`. Keep the checkout in the same folder. Remove the line ending in `# valorant-tracker shortcuts` from your PowerShell profile to uninstall the shortcuts.
+
+### Installer options
 
 ```powershell
-[Environment]::SetEnvironmentVariable('HENRIK_API_KEY', $env:HENRIK_API_KEY, 'User')
+# Install and authenticate, but do not start the web server
+.\install.ps1 -NoStart
+
+# Install from a local checkout (no GitHub download)
+.\install.ps1 -SourceDirectory . -NoStart
 ```
 
-The persistent key is stored in your Windows user environment, not an encrypted vault. Do not share it, put it in your source files, or commit it to GitHub. The tracker never prints it.
-
-### 3. Enable the short commands
-
-Run from the project folder:
-
-```powershell
-.\install-shortcuts.ps1
-. .\shortcuts.ps1
-```
-
-You can now use the shortcuts from any folder. The installer adds a line to your PowerShell profile so future windows load them automatically. Keep the project in the same folder. If you move it, remove the old profile line and rerun the installer. To uninstall, remove the line ending in `# valorant-tracker shortcuts` from your profile (`notepad $PROFILE`).
-
-If PowerShell blocks scripts, use the Python commands below; changing your execution policy is not required.
+`-NonInteractive` fails instead of prompting when Python or a valid key is missing. `-SkipProfile` avoids modifying shell profiles. `-InstallDirectory` selects an alternative installation folder. A stable launcher is available at `<installation folder>\start.ps1`.
 
 ## Commands
 
@@ -73,22 +84,6 @@ Replace `Player#TAG` with your Riot ID. Use quotation marks when your name has s
 | `!hs "Player#TAG"` | Headshot percentage and head/body/leg hit totals over up to 10 recent competitive matches |
 | `!hours "Player#TAG" Clove` | Time on an agent within available recent matches across all queues |
 | `!web` or `!serve` | Start the local browser client |
-| `!instalock Clove` | Select and lock an agent in your current Windows agent-selection lobby |
-
-### In-game agent locking
-
-```powershell
-# Check the lobby without changing your selection:
-!instalock Clove --dry-run
-# Select and lock once, in the current lobby:
-!instalock Clove
-```
-
-Start VALORANT, sign in, and enter agent select first. This command acts on the currently signed-in account; it does not take a Riot ID. It checks that selection is active and the agent is not already locked by a teammate, then sends one select request and one lock request. It verifies the returned lock state. It does not wait for future games or keep running. If a request fails after selection, check the game before retrying.
-
-This is an **unofficial client integration**, separate from HenrikDev. The [community endpoint documentation](https://valapidocs.techchrism.me/endpoint/lock-character) warns that instalocking may lead to account or API restrictions. Use at your own discretion. Live locking has not been tested against an actual game lobby; automated tests mock the requests.
-
-It reads the running Riot client's local lockfile and game log, uses session tokens only in memory, and sends them only to the detected Riot game host. Tokens are not stored, printed, or sent to HenrikDev or the agent catalog. Only the local Riot client connection accepts its self-signed certificate; remote HTTPS remains verified. It needs Windows and a running game, but no HenrikDev key. Agent names come from [Valorant-API](https://valorant-api.com/). Agent locking is available only from the CLI, not the web client.
 
 ### Web client
 
@@ -197,14 +192,14 @@ python -m venv .venv
 | --- | --- |
 | `!today` is not recognized | Open a new PowerShell window, or run `. .\shortcuts.ps1` from the project folder. |
 | Python is not recognized | Install Python 3.10+ and add it to PATH, then reopen PowerShell. |
-| Missing API key | Follow step 2. For direct Python use, set the key in the current process. |
+| Missing API key | Rerun the installer, or set the key in the current process for direct Python use. |
 | Key rejected / access denied | Verify the key and permissions in HenrikDev's dashboard. |
 | Player not found | Check the full Riot ID, including tag, region, and platform. |
 | No matches / outdated stats | Wait for the API to update; check your queue filter and platform. |
 | Rate limit reached | Wait and retry. The CLI does not continuously poll or automatically retry. |
 | Network error | Check connectivity. Requests time out after 20 seconds. |
 
-To remove your saved key:
+To remove the installer-saved key, delete `%LOCALAPPDATA%\ValorantTracker\api-key.xml`. For a key previously saved as a user environment variable:
 
 ```powershell
 [Environment]::SetEnvironmentVariable('HENRIK_API_KEY', $null, 'User')
