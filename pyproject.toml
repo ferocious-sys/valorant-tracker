@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "valorant-tracker-cli"
+version = "0.2.0"
+description = "Dependency-free VALORANT tracker using HenrikDev API"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+valo = "valorant_tracker:main"
+
+[tool.setuptools]
+py-modules = ["valorant_tracker", "valorant_stats"]
