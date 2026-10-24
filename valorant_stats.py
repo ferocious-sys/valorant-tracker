@@ -89,5 +89,33 @@ def performance_summary(matches, puuid):
         "kills": totals["kills"], "deaths": totals["deaths"], "assists": totals["assists"],
         "kd": totals["kills"] / totals["deaths"] if totals["deaths"] else None,
         "headshot_pct": 100 * totals["headshots"] / shots if shots else None,
+        "headshots": totals["headshots"], "bodyshots": totals["bodyshots"], "legshots": totals["legshots"],
         "agents": dict(sorted(agents.items(), key=lambda item: (-item[1], item[0]))),
     }
+
+
+def agent_hours(matches, puuid, agent):
+    seen, selected, duration, missing = set(), [], 0, 0
+    for match in matches:
+        meta = match.get("metadata") or {}
+        match_id = meta.get("match_id")
+        if match_id in seen:
+            continue
+        seen.add(match_id)
+        player = player_in(match, puuid)
+        if not player or not meta.get("is_completed"):
+            continue
+        if (player.get("agent") or {}).get("name", "").casefold() != agent.strip().casefold():
+            continue
+        selected.append(match)
+        value = meta.get("game_length_in_ms")
+        if isinstance(value, (int, float)) and value >= 0:
+            duration += value
+        else:
+            missing += 1
+    dates = [m["metadata"]["started_at"] for m in matches if m.get("metadata", {}).get("started_at")]
+    return {"agent": agent.strip(), "hours": duration / 3_600_000, "minutes": duration / 60_000,
+            "agent_matches": len(selected), "scanned_matches": len(seen), "missing_duration": missing,
+            "oldest_match": min(dates, key=timestamp) if dates else None,
+            "newest_match": max(dates, key=timestamp) if dates else None,
+            "scope": "Available recent matches across all queues; not lifetime playtime."}

@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-from valorant_stats import calendar_date, daily_summary, performance_summary, timestamp
+from valorant_stats import agent_hours, calendar_date, daily_summary, performance_summary, timestamp
 
 BASE_URL = "https://api.henrikdev.xyz"
 
@@ -48,7 +48,7 @@ class Client:
             url += "?" + urllib.parse.urlencode(query)
         request = urllib.request.Request(url, headers={
             "Authorization": self.key, "Accept": "application/json",
-            "User-Agent": "valorant-tracker-cli/0.2.0",
+            "User-Agent": "valorant-tracker-cli/0.3.0",
         })
         try:
             with self.opener(request, timeout=20) as response:
@@ -120,6 +120,26 @@ def match_rows(matches, puuid):
 def render(command, data):
     account = data["account"]
     heading = f"{account['name']}#{account['tag']}"
+    if command == "hours":
+        h = data["hours"]
+        lines = [heading, f"{h['agent']}: {h['hours']:.2f} hours ({h['minutes']:.0f} minutes)",
+                 f"{h['agent_matches']} agent matches in {h['scanned_matches']} available recent matches.", h["scope"]]
+        if h["oldest_match"]:
+            lines.append(f"Sample: {h['oldest_match']} to {h['newest_match']}")
+        if h["missing_duration"]:
+            lines.append(f"Duration missing for {h['missing_duration']} matches; hours are partial.")
+        if not h["agent_matches"]:
+            lines.append("No matches with this agent in the sample. Check the spelling or increase --pages.")
+        return "\n".join(lines)
+    if command in ("kd", "hs"):
+        s = data["stats"]
+        if command == "kd":
+            value = f"{s['kd']:.2f}" if s["kd"] is not None else "-- (zero deaths)"
+            line = f"K/D: {value} | {s['kills']} kills / {s['deaths']} deaths / {s['assists']} assists"
+        else:
+            value = f"{s['headshot_pct']:.1f}%" if s["headshot_pct"] is not None else "-- (no hits)"
+            line = f"HS: {value} | Head {s['headshots']} / Body {s['bodyshots']} / Legs {s['legshots']}"
+        return f"{heading}\n{line}\nSample: {s['matches']} recent completed competitive matches."
     if command == "today":
         summary = data["today"]
         lines = [heading, f"Today: {summary['date']} ({summary['timezone']})",
@@ -214,16 +234,43 @@ def fetch_history(client, region, platform, puuid):
     return sorted(unique.values(), key=lambda h: timestamp(h["date"]), reverse=True)
 
 
+def fetch_recent_pages(client, region, platform, puuid, pages):
+    matches, seen = [], set()
+    for index in range(pages):
+        page = client.get("valorant", "v4", "by-puuid", "matches", region, platform, puuid, size=10, start=index * 10)
+        if not isinstance(page, list):
+            raise TrackerError("The API returned invalid match history.")
+        new = [m for m in page if m["metadata"]["match_id"] not in seen]
+        matches.extend(new)
+        seen.update(m["metadata"]["match_id"] for m in new)
+        if len(page) < 10 or not new:
+            break
+    return matches
+
+
+def port_number(value):
+    try:
+        port = int(value)
+        if 1 <= port <= 65535:
+            return port
+    except ValueError:
+        pass
+    raise argparse.ArgumentTypeError("Port must be between 1 and 65535")
+
+
 def parser():
     p = argparse.ArgumentParser(description="VALORANT player tracker powered by HenrikDev. Use for yourself or consenting players.")
-    p.add_argument("--version", action="version", version="%(prog)s 0.2.0")
+    p.add_argument("--version", action="version", version="%(prog)s 0.3.0")
     commands = p.add_subparsers(dest="command", required=True)
     for command, description in [("profile", "Account details"), ("rank", "Current rank and peak"),
                                  ("matches", "Recent matches and personal performance"),
                                  ("today", "Today's wins, losses, and net RR"), ("rr", "Recent RR changes"),
-                                 ("stats", "Recent competitive performance summary"), ("last", "Your latest match")]:
-        aliases = {"profile": ["!profile"], "rank": ["!rank"], "matches": ["recent", "!recent"],
-                   "today": ["!today"], "rr": ["!rr"], "stats": ["!stats"], "last": ["!last"]}
+                                 ("stats", "Recent competitive performance summary"), ("last", "Your latest match"),
+                                 ("kd", "Recent kill/death ratio"), ("hs", "Recent headshot percentage"),
+                                 ("hours", "Recent playtime on an agent (not lifetime)")]:
+        aliases = {"profile": ["!profile"], "rank": ["!rank"], "matches": ["recent", "!recent", "career", "!career"],
+                   "today": ["!today"], "rr": ["!rr"], "stats": ["!stats"], "last": ["!last"],
+                   "kd": ["!kd"], "hs": ["!hs"], "hours": ["!hours"]}
         sub = commands.add_parser(command, aliases=aliases[command], help=description)
         sub.set_defaults(command=command)
         sub.add_argument("player", type=riot_id, help='Riot ID, e.g. "Player#TAG"')
@@ -231,44 +278,71 @@ def parser():
         if command != "profile":
             sub.add_argument("--region", choices=["eu", "na", "ap", "kr", "br", "latam"], help="Defaults to account region")
             sub.add_argument("--platform", choices=["pc", "console"], default="pc")
-        if command in ("matches", "rr", "stats"):
-            sub.add_argument("--count", type=match_count, default=10 if command == "stats" else 5)
+        if command in ("matches", "rr", "stats", "kd", "hs"):
+            sub.add_argument("--count", type=match_count, default=10 if command in ("stats", "kd", "hs") else 5)
+        if command == "hours":
+            sub.add_argument("agent", help='Agent name, e.g. Clove or "KAY/O"')
+            sub.add_argument("--pages", type=match_count, default=3, help="Scan 1-10 pages of 10 matches (default: 3)")
         if command in ("matches", "last"):
             sub.add_argument("--mode", default="competitive", help="Queue filter (default: competitive); use all for all queues")
         if command in ("today", "rr"):
             sub.add_argument("--utc", action="store_true", help="Use UTC instead of your computer's local time")
+    web = commands.add_parser("web", aliases=["!web", "serve", "!serve"], help="Serve the local web client")
+    web.set_defaults(command="web")
+    web.add_argument("--port", type=port_number, default=8765)
+    web.add_argument("--no-browser", action="store_true", help="Start without opening a browser")
+    lock = commands.add_parser("instalock", aliases=["!instalock"], help="Lock an agent in the current Windows game lobby (unofficial)")
+    lock.set_defaults(command="instalock")
+    lock.add_argument("agent")
+    lock.add_argument("--dry-run", action="store_true", help="Check the current lobby without selecting or locking")
     return p
+
+
+def lookup(args, client=None):
+    client = client or Client(os.environ.get("HENRIK_API_KEY"))
+    name, tag = args.player
+    account = client.get("valorant", "v2", "account", name, tag)
+    if not isinstance(account, dict) or not all(account.get(k) for k in ("name", "tag", "puuid", "region")):
+        raise TrackerError("The API returned incomplete account data.")
+    data = {"account": account}
+    if args.command != "profile":
+        region = args.region or account["region"]
+        if args.command == "rank":
+            data["rank"] = client.get("valorant", "v3", "by-puuid", "mmr", region, args.platform, account["puuid"])
+            if not isinstance(data["rank"], dict):
+                raise TrackerError("No ranked data available.")
+        elif args.command == "today":
+            data.update(fetch_today(client, region, args.platform, account["puuid"], args.utc))
+        elif args.command == "rr":
+            data.update(history=fetch_history(client, region, args.platform, account["puuid"])[:args.count], utc=args.utc)
+        elif args.command == "hours":
+            games = fetch_recent_pages(client, region, args.platform, account["puuid"], args.pages)
+            data["hours"] = agent_hours(games, account["puuid"], args.agent)
+        else:
+            query = {"size": 1 if args.command == "last" else args.count}
+            mode = getattr(args, "mode", "competitive")
+            if mode != "all":
+                query["mode"] = mode
+            data["matches"] = client.get("valorant", "v4", "by-puuid", "matches", region, args.platform, account["puuid"], **query)
+            if not isinstance(data["matches"], list):
+                raise TrackerError("No match data available.")
+            if args.command in ("stats", "kd", "hs"):
+                data["stats"] = performance_summary(data["matches"], account["puuid"])
+    return data
 
 
 def main(argv=None):
     args = parser().parse_args(argv)
     try:
-        client = Client(os.environ.get("HENRIK_API_KEY"))
-        name, tag = args.player
-        account = client.get("valorant", "v2", "account", name, tag)
-        if not isinstance(account, dict) or not all(account.get(k) for k in ("name", "tag", "puuid", "region")):
-            raise TrackerError("The API returned incomplete account data.")
-        data = {"account": account}
-        if args.command != "profile":
-            region = args.region or account["region"]
-            if args.command == "rank":
-                data["rank"] = client.get("valorant", "v3", "by-puuid", "mmr", region, args.platform, account["puuid"])
-                if not isinstance(data["rank"], dict):
-                    raise TrackerError("No ranked data available.")
-            elif args.command == "today":
-                data.update(fetch_today(client, region, args.platform, account["puuid"], args.utc))
-            elif args.command == "rr":
-                data.update(history=fetch_history(client, region, args.platform, account["puuid"])[:args.count], utc=args.utc)
-            else:
-                query = {"size": 1 if args.command == "last" else args.count}
-                mode = getattr(args, "mode", "competitive")
-                if mode != "all":
-                    query["mode"] = mode
-                data["matches"] = client.get("valorant", "v4", "by-puuid", "matches", region, args.platform, account["puuid"], **query)
-                if not isinstance(data["matches"], list):
-                    raise TrackerError("No match data available.")
-                if args.command == "stats":
-                    data["stats"] = performance_summary(data["matches"], account["puuid"])
+        if args.command == "instalock":
+            from valorant_lock import lock_current_agent
+            result = lock_current_agent(args.agent, args.dry_run)
+            print(clean(f"{result['agent']}: {result['status']}"))
+            return 0
+        if args.command == "web":
+            from valorant_web import serve
+            return serve(args.port, not args.no_browser)
+        data = lookup(args)
         print(json.dumps(data, indent=2, ensure_ascii=True) if args.json else clean_lines(render(args.command, data)))
         return 0
     except TrackerError as exc:
@@ -288,4 +362,6 @@ def clean_lines(text):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Use the canonical module so the web server shares the same exception types.
+    from valorant_tracker import main as entrypoint
+    sys.exit(entrypoint())

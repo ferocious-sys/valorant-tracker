@@ -68,6 +68,55 @@ Replace `Player#TAG` with your Riot ID. Use quotation marks when your name has s
 | `!stats "Player#TAG"` | Up to 10 recent competitive games: win rate, K/D, HS%, and agents |
 | `!profile "Player#TAG"` | Account level, region, platforms, and account ID |
 | `!help` | List of available commands |
+| `!career "Player#TAG"` | Alias for `!recent`, with the same options |
+| `!kd "Player#TAG"` | K/D ratio and total kills, deaths, assists over up to 10 recent competitive matches |
+| `!hs "Player#TAG"` | Headshot percentage and head/body/leg hit totals over up to 10 recent competitive matches |
+| `!hours "Player#TAG" Clove` | Time on an agent within available recent matches across all queues |
+| `!web` or `!serve` | Start the local browser client |
+| `!instalock Clove` | Select and lock an agent in your current Windows agent-selection lobby |
+
+### In-game agent locking
+
+```powershell
+# Check the lobby without changing your selection:
+!instalock Clove --dry-run
+# Select and lock once, in the current lobby:
+!instalock Clove
+```
+
+Start VALORANT, sign in, and enter agent select first. This command acts on the currently signed-in account; it does not take a Riot ID. It checks that selection is active and the agent is not already locked by a teammate, then sends one select request and one lock request. It verifies the returned lock state. It does not wait for future games or keep running. If a request fails after selection, check the game before retrying.
+
+This is an **unofficial client integration**, separate from HenrikDev. The [community endpoint documentation](https://valapidocs.techchrism.me/endpoint/lock-character) warns that instalocking may lead to account or API restrictions. Use at your own discretion. Live locking has not been tested against an actual game lobby; automated tests mock the requests.
+
+It reads the running Riot client's local lockfile and game log, uses session tokens only in memory, and sends them only to the detected Riot game host. Tokens are not stored, printed, or sent to HenrikDev or the agent catalog. Only the local Riot client connection accepts its self-signed certificate; remote HTTPS remains verified. It needs Windows and a running game, but no HenrikDev key. Agent names come from [Valorant-API](https://valorant-api.com/). Agent locking is available only from the CLI, not the web client.
+
+### Web client
+
+```powershell
+!web
+# Equivalent command:
+!serve
+# Choose another port or skip opening a browser:
+!web --port 9000 --no-browser
+```
+
+Open **http://127.0.0.1:8765** (or your chosen port). Keep the PowerShell window running; press **Ctrl+C** to stop the server. The web client supports rank, today, career, stats, K/D, headshots, agent hours, RR history, last match, and profile. Choose a view, enter your Riot ID, then click **Look up player**. No automatic polling occurs.
+
+The server listens only on your own computer. It reads the same `HENRIK_API_KEY` used by the CLI; the key is never sent to the browser. This is a local personal client, not a public hosting server. Without PowerShell shortcuts, use `python valorant_tracker.py web` after setting the key in your environment.
+
+### Agent hours and focused stats
+
+```powershell
+!kd "Player#TAG" --count 5
+!hs "Player#TAG" --count 10
+!hours "Player#TAG" Clove
+!hours "Player#TAG" "KAY/O" --pages 10
+!career "Player#TAG" --count 10 --mode all
+```
+
+`!hours` scans up to 30 recent matches by default (3 pages). `--pages` accepts 1 to 10, for a maximum of 100 available games. It sums completed match durations for the named agent, ignoring case. Each full page costs one API request. It shows the number of agent matches, the number of games scanned, and the date range. Missing durations are reported as partial data.
+
+This measures match time in the available sample, **not lifetime hours**, time spent in menus, or precise active playtime during disconnects. An agent absent from the sample returns no matching games; check the spelling or expand the sample. `!kd` and `!hs` use competitive games, with `--count` from 1 to 10.
 
 ### Useful options
 
