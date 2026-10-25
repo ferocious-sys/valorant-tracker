@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -11,6 +12,8 @@ from datetime import datetime, timezone
 from valorant_stats import agent_hours, calendar_date, daily_summary, performance_summary, timestamp
 
 BASE_URL = "https://api.henrikdev.xyz"
+COLORS = {"green": "\x1b[92m", "red": "\x1b[91m", "yellow": "\x1b[93m"}
+RESET_COLOR = "\x1b[0m"
 
 
 class TrackerError(Exception):
@@ -79,6 +82,62 @@ class Client:
 def clean(value):
     # Remote player names must not be able to inject terminal control sequences.
     return "".join(c for c in str(value) if c.isprintable())
+
+
+def terminal_supports_color():
+    if "NO_COLOR" in os.environ or os.environ.get("TERM") == "dumb" or not sys.stdout.isatty():
+        return False
+    if os.name != "nt":
+        return True
+    try:
+        import ctypes
+        kernel = ctypes.windll.kernel32
+        handle = kernel.GetStdHandle(-11)
+        mode = ctypes.c_ulong()
+        if not kernel.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        return bool(kernel.SetConsoleMode(handle, mode.value | 0x0004))
+    except (AttributeError, OSError):
+        return False
+
+
+def color_value(value, color):
+    return COLORS[color] + value + RESET_COLOR
+
+
+def color_rr(value):
+    amount = int(value)
+    return color_value(value, "green" if amount > 0 else "red" if amount < 0 else "yellow")
+
+
+def colorize(command, output):
+    """Apply color only after untrusted text has been cleaned and columns aligned."""
+    lines = output.split("\n")
+    for index in range(1, len(lines)):
+        line = lines[index]
+        if command == "today":
+            if " matches | " in line:
+                line = re.sub(r"\b\d+[WLD]\b", lambda m: color_value(
+                    m.group(), {"W": "green", "L": "red", "D": "yellow"}[m.group()[-1]]), line)
+            elif line.startswith("RR gained:"):
+                line = re.sub(r"(RR gained: |RR lost: |Net RR: )([+-]?\d+)",
+                              lambda m: m.group(1) + color_rr(m.group(2)), line)
+            elif re.match(r"^\d{4}-\d{2}-\d{2} ", line):
+                line = re.sub(r"\b(WIN|LOSS|DRAW)\b", lambda m: color_value(
+                    m.group(), {"WIN": "green", "LOSS": "red", "DRAW": "yellow"}[m.group()]), line)
+                line = re.sub(r"(?<!\S)[+-]\d+(?!\S)", lambda m: color_rr(m.group()), line)
+        elif command in ("matches", "last"):
+            line = re.sub(r"\b(WIN|LOSS|DRAW)\b", lambda m: color_value(
+                m.group(), {"WIN": "green", "LOSS": "red", "DRAW": "yellow"}[m.group()]), line)
+        elif command == "rr":
+            line = re.sub(r"(?<!\S)[+-]\d+(?!\S)", lambda m: color_rr(m.group()), line)
+        elif command == "rank" and line.startswith("Last RR change"):
+            line = re.sub(r"([+-]?\d+)\s*$", lambda m: color_rr(m.group(1)), line)
+        elif command == "stats" and line.startswith("Record"):
+            line = re.sub(r"\b\d+[WLD]\b", lambda m: color_value(
+                m.group(), {"W": "green", "L": "red", "D": "yellow"}[m.group()[-1]]), line)
+        lines[index] = line
+    return "\n".join(lines)
 
 
 def table(headers, rows):
@@ -343,7 +402,13 @@ def main(argv=None):
             from valorant_overlay import run
             return run(args.players)
         data = lookup(args)
-        print(json.dumps(data, indent=2, ensure_ascii=True) if args.json else clean_lines(render(args.command, data)))
+        if args.json:
+            output = json.dumps(data, indent=2, ensure_ascii=True)
+        else:
+            output = clean_lines(render(args.command, data))
+            if terminal_supports_color():
+                output = colorize(args.command, output)
+        print(output)
         return 0
     except TrackerError as exc:
         print(f"Error: {exc}", file=sys.stderr)

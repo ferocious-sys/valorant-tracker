@@ -184,6 +184,8 @@ The API may return limited history or delay new games. The tracker fetches match
 
 ## Understanding your stats
 
+Terminal reports use green for wins and positive RR, red for losses and negative RR, and yellow for draws and zero RR. The web client uses the same colors in match tables and RR cards. Terminal colors turn off automatically when output is redirected or `NO_COLOR` is set; `--json` always stays plain.
+
 - **K/D/A:** kills / deaths / assists.
 - **K/D:** total kills divided by total deaths; `--` when deaths are zero.
 - **HS%:** head hits divided by head + body + leg hits, not the percentage of kills.

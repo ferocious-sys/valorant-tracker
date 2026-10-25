@@ -96,6 +96,29 @@ class TrackerTests(unittest.TestCase):
         self.assertIn("HENRIK_API_KEY", err.getvalue())
         self.assertNotIn("\x1b", v.clean("evil\x1b[31m"))
 
+    def test_outcome_and_rr_colors_are_applied_after_sanitizing(self):
+        plain = v.clean_lines("Test#TAG\n2 matches | 1W / 1L / 0D | 0 unknown\n"
+                              "RR gained: +18 | RR lost: -14 | Net RR: +4\n"
+                              "STARTED  MAP  RESULT  RR\n"
+                              "2026-10-25  Ascent  WIN  +18\n"
+                              "2026-10-25  Haven  LOSS  -14\n"
+                              "2026-10-25  Lotus  DRAW  +0")
+        colored = v.colorize("today", plain)
+        self.assertIn("\x1b[92mWIN\x1b[0m", colored)
+        self.assertIn("\x1b[91m-14\x1b[0m", colored)
+        self.assertIn("\x1b[93m+0\x1b[0m", colored)
+        self.assertIn("\x1b[92m1W\x1b[0m", colored)
+        for color in ("\x1b[92m", "\x1b[91m", "\x1b[93m", "\x1b[0m"):
+            colored = colored.replace(color, "")
+        self.assertEqual(colored, plain)
+        self.assertNotIn("\x1b", v.clean_lines("evil\x1b[31m"))
+
+    def test_terminal_color_respects_redirects_and_no_color(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertFalse(v.terminal_supports_color())
+        with patch.dict(os.environ, {"NO_COLOR": ""}):
+            self.assertFalse(v.terminal_supports_color())
+
 
 if __name__ == "__main__":
     unittest.main()
