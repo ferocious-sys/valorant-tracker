@@ -10,6 +10,18 @@ Check your rank, recent games, and today's RR from your terminal.
 
 Built with Python and the community [HenrikDev API](https://github.com/Henrik-3/unofficial-valorant-api). No Python runtime dependencies. Use it for your own account or players who have consented.
 
+## Windows GUI installer
+
+Download the [repository ZIP](https://github.com/ferocious-sys/valorant-tracker/archive/refs/heads/main.zip), extract it, and double-click **Install Valorant Tracker.cmd**. Or open the GUI with one PowerShell command:
+
+```powershell
+powershell -NoProfile -STA -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/ferocious-sys/valorant-tracker/main/gui-install.ps1 | iex"
+```
+
+The setup window lets you choose the installation folder, open the HenrikDev dashboard, paste a key into a hidden field, choose PowerShell shortcuts, and start the web client when installation finishes. Leave the key blank to reuse a previously saved one. If Python 3.10+ is missing, setup installs Python 3.13 for your Windows user with `winget`. The key is validated and saved with Windows user encryption. The GUI shows progress and errors without asking for a Riot password. HenrikDev key creation still happens in its dashboard; the installer cannot generate a key automatically.
+
+The GUI uses the same [installation script](install.ps1) as the command-line setup. You can [review the GUI script](gui-install.ps1) before running it. To stop an installation in progress, close the setup window and confirm.
+
 ## One-command Windows installation
 
 Paste this into PowerShell:
@@ -64,6 +76,8 @@ For source-checkout shortcuts, run `.\install-shortcuts.ps1` and `. .\shortcuts.
 ```
 
 `-NonInteractive` fails instead of prompting when Python or a valid key is missing. `-SkipProfile` avoids modifying shell profiles. `-InstallDirectory` selects an alternative installation folder. A stable launcher is available at `<installation folder>\start.ps1`.
+
+`-AutoInstallPython` allows a noninteractive installation to use `winget` when Python is missing; the GUI passes this option.
 
 ## Commands
 

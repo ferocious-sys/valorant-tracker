@@ -3,6 +3,7 @@ param(
     [string]$SourceDirectory,
     [switch]$NoStart,
     [switch]$NonInteractive,
+    [switch]$AutoInstallPython,
     [switch]$SkipProfile
 )
 $ErrorActionPreference = 'Stop'
@@ -55,7 +56,7 @@ Write-Host 'VALORANT Tracker setup' -ForegroundColor Cyan
 Write-Host 'Installing for your Windows user. No Riot password is requested.'
 $trackerPython = Find-TrackerPython
 if (-not $trackerPython) {
-    if ($NonInteractive) { throw 'Python 3.10+ was not found. Install Python and retry.' }
+    if ($NonInteractive -and -not $AutoInstallPython) { throw 'Python 3.10+ was not found. Install Python and retry.' }
     if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { throw 'Install Python 3.10+ from python.org, then rerun this command. Windows Package Manager is unavailable.' }
     Write-Host 'Installing Python with Windows Package Manager...'
     & winget install --id Python.Python.3.13 --exact --scope user --silent --accept-package-agreements --accept-source-agreements
