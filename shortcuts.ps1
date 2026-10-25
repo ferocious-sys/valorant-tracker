@@ -20,3 +20,4 @@ function global:!hours { Invoke-ValorantTracker hours @args }
 function global:!career { Invoke-ValorantTracker career @args }
 function global:!web { Invoke-ValorantTracker web @args }
 function global:!serve { Invoke-ValorantTracker serve @args }
+function global:!overlay { Invoke-ValorantTracker overlay @args }

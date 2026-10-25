@@ -84,6 +84,7 @@ Replace `Player#TAG` with your Riot ID. Use quotation marks when your name has s
 | `!hs "Player#TAG"` | Headshot percentage and head/body/leg hit totals over up to 10 recent competitive matches |
 | `!hours "Player#TAG" Clove` | Time on an agent within available recent matches across all queues |
 | `!web` or `!serve` | Start the local browser client |
+| `!overlay "Player#TAG"` | Show the entered player's rank above their name in a small desktop overlay; F8 hides/shows it |
 
 ### Web client
 
@@ -98,6 +99,18 @@ Replace `Player#TAG` with your Riot ID. Use quotation marks when your name has s
 Open **http://127.0.0.1:8765** (or your chosen port). Keep the PowerShell window running; press **Ctrl+C** to stop the server. The web client supports rank, today, career, stats, K/D, headshots, agent hours, RR history, last match, and profile. Choose a view, enter your Riot ID, then click **Look up player**. No automatic polling occurs.
 
 The server listens only on your own computer. It reads the same `HENRIK_API_KEY` used by the CLI; the key is never sent to the browser. This is a local personal client, not a public hosting server. Without PowerShell shortcuts, use `python valorant_tracker.py web` after setting the key in your environment.
+
+### Rank overlay (Windows)
+
+```powershell
+!overlay "Player#TAG"
+```
+
+The rank appears above the entered Riot ID in a small floating window. Press **F8** to hide or show it, drag the header to reposition it, click **Refresh** to request current rank data, or click **Close** to exit. It works best with VALORANT in borderless windowed mode; exclusive fullscreen may cover desktop windows. Keep the PowerShell window open while using it.
+
+You can add up to four other Riot IDs after your own when those players have opted into sharing their stats. The overlay uses only IDs you enter. It does not read the live lobby, identify hidden players, or place labels over characters inside the game. Each refresh makes one account and one rank API request per player. Without PowerShell shortcuts, use `python valorant_tracker.py overlay "Player#TAG"`.
+
+This scope follows [Riot's VALORANT app policy](https://developer.riotgames.com/docs/valorant), which requires player opt-in and disallows opponent scouting.
 
 ### Agent hours and focused stats
 
@@ -221,3 +234,7 @@ Not affiliated with or endorsed by Riot Games. VALORANT and Riot Games are trade
 The web client now features frosted panels, soft violet and teal lighting, rounded controls, smooth hover and result transitions, and a loading indicator. Small screens use a horizontal view picker and stacked result cards. Animations respect your system reduced-motion preference.
 
 To update an installed copy, rerun the one-command installer above. For a Git checkout, run `git pull`. Stop the old web server with Ctrl+C, run `!web` again, and refresh your browser.
+
+## Version 0.6.0 — Desktop rank overlay
+
+Run `!overlay "Player#TAG"` on Windows to see a movable rank card. F8 hides or shows it globally. Rank data updates when you click Refresh, and only for the Riot IDs you enter.

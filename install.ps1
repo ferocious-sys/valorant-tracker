@@ -110,7 +110,7 @@ try {
     }
     $versionPath = Join-Path $InstallDirectory "versions\$version"
     New-Item -ItemType Directory -Path $versionPath -Force | Out-Null
-    $files = @('valorant_tracker.py','valorant_stats.py','valorant_web.py','valorant_ui.py','shortcuts.ps1','launch.ps1','README.md')
+    $files = @('valorant_tracker.py','valorant_stats.py','valorant_web.py','valorant_ui.py','valorant_overlay.py','shortcuts.ps1','launch.ps1','README.md')
     foreach ($file in $files) {
         $sourceFile = Join-Path $sourcePath $file
         if (-not (Test-Path -LiteralPath $sourceFile)) { throw "Downloaded package is missing $file." }

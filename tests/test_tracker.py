@@ -8,9 +8,27 @@ from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
 import valorant_tracker as v
+from valorant_overlay import rank_entry
 
 
 class TrackerTests(unittest.TestCase):
+    def test_overlay_rank_uses_entered_account(self):
+        class FakeClient:
+            def __init__(self):
+                self.calls = []
+
+            def get(self, *path, **query):
+                self.calls.append(path)
+                if path[:3] == ("valorant", "v2", "account"):
+                    return {"name": "Test", "tag": "TAG", "puuid": "player-id", "region": "ap"}
+                return {"current": {"tier": {"name": "Gold 3"}, "rr": 42}}
+
+        client = FakeClient()
+        self.assertEqual(rank_entry(("Test", "TAG"), client),
+                         {"name": "Test#TAG", "rank": "Gold 3", "rr": 42})
+        self.assertEqual(client.calls[1], ("valorant", "v3", "by-puuid", "mmr", "ap", "pc", "player-id"))
+        self.assertEqual(v.parser().parse_args(["!overlay", "Test#TAG"]).players, [("Test", "TAG")])
+
     def test_short_command_aliases(self):
         for alias, expected in [("!rank", "rank"), ("!recent", "matches"), ("recent", "matches")]:
             args = v.parser().parse_args([alias, "Test#TAG"])
