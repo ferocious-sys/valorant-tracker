@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VALORANT Tracker Tactical HUD</title><link rel="stylesheet" href="hud.css"><script src="hud.js" defer></script></head>
+<body>
+  <main class="hud" aria-label="Personal VALORANT performance">
+    <header><div class="sigil">V</div><div><span class="overline">V / TRACKER · PERSONAL TELEMETRY</span><h1>TACTICAL <em>HUD</em></h1></div><div class="live"><i></i> LIVE</div></header>
+    <div class="identity"><div><small id="source">WAITING FOR GAME DATA</small><strong id="map">LIVE MATCH</strong><span id="player">YOU</span></div><div class="round"><small>CURRENT ROUND</small><strong id="round">--</strong></div></div>
+    <div class="stats"><div><small>MATCH SCORE</small><strong id="score">0 : 0</strong></div><div><small>YOUR K / D / A</small><strong id="kda">0 / 0 / 0</strong></div><div><small>DAMAGE / ROUND</small><strong id="adr">--</strong></div></div>
+    <section class="graph"><div class="section-title"><div><small>01 / ROUND HISTORY</small><h2>Damage output</h2></div><span>YOUR DAMAGE · COMPLETED ROUNDS</span></div><svg id="damage-graph" viewBox="0 0 570 170" role="img" aria-label="Damage by completed round"></svg><div class="axis"><span>ROUND 01</span><span id="graph-end">AWAITING DATA</span></div></section>
+    <section class="result-strip"><div class="section-title"><div><small>02 / ROUND RESULTS</small><h2>Momentum</h2></div><span>W / L</span></div><div id="round-results" class="round-results"><span class="placeholder">Round results appear after play begins.</span></div></section>
+    <div class="footer"><span id="agent">AGENT --</span><span id="headshots">HS --</span><span id="rank">RANK --</span></div>
+  </main>
+</body></html>

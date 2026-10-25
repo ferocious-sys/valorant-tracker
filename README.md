@@ -238,3 +238,7 @@ To update an installed copy, rerun the one-command installer above. For a Git ch
 ## Version 0.6.0 — Desktop rank overlay
 
 Run `!overlay "Player#TAG"` on Windows to see a movable rank card. F8 hides or shows it globally. Rank data updates when you click Refresh, and only for the Riot IDs you enter.
+
+## Experimental Tab HUD
+
+The [`overwolf/`](overwolf/README.md) folder contains a prototype for a live, Tab-held personal performance HUD. It uses Overwolf's VALORANT game events for a round-damage graph, match K/D/A, score, round results, headshot rate, agent, and rank. Overwolf developer approval is required before an unpacked or unsigned build can run, so this is not installed by the one-command Python installer yet. `!overlay` remains the F8 desktop rank card.

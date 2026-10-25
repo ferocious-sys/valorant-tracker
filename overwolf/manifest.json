@@ -1,0 +1,48 @@
+{
+  "manifest_version": 1,
+  "type": "WebApp",
+  "permissions": ["Hotkeys", "GameInfo"],
+  "meta": {
+    "name": "Valorant Tracker Tactical HUD",
+    "author": "ferocious-sys",
+    "version": "0.1.0",
+    "minimum-overwolf-version": "0.220.0.1",
+    "description": "A Tab-held personal round-performance HUD for VALORANT.",
+    "icon": "assets/icon.png"
+  },
+  "data": {
+    "game_targeting": {"type": "dedicated", "game_ids": [21640]},
+    "game_events": [21640],
+    "start_window": "background",
+    "windows": {
+      "background": {
+        "file": "background.html", "desktop_only": true, "native_window": true,
+        "size": {"width": 430, "height": 330}, "resizable": false
+      },
+      "hud": {
+        "file": "hud.html",
+        "in_game_only": true,
+        "transparent": true,
+        "clickthrough": true,
+        "ignore_keyboard_events": true,
+        "grab_keyboard_focus": false,
+        "show_in_taskbar": false,
+        "resizable": false,
+        "size": {"width": 650, "height": 680},
+        "start_position": {"top": 24, "left": 24}
+      }
+    },
+    "hotkeys": {
+      "hold_hud": {
+        "title": "Show personal round HUD while held",
+        "action-type": "custom",
+        "default": "Tab",
+        "passthrough": true,
+        "hold": true
+      }
+    },
+    "launch_events": [
+      {"event": "GameLaunch", "event_data": {"game_ids": [21640]}, "start_minimized": true}
+    ]
+  }
+}
