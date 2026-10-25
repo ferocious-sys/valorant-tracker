@@ -215,3 +215,9 @@ python -m unittest discover -s tests -v
 Tests use mocked HTTP and sample match data. API schema: [HenrikDev OpenAPI](https://api.henrikdev.xyz/openapi.json).
 
 Not affiliated with or endorsed by Riot Games. VALORANT and Riot Games are trademarks of Riot Games, Inc.
+
+## Version 0.5.0 — Liquid glass
+
+The web client now features frosted panels, soft violet and teal lighting, rounded controls, smooth hover and result transitions, and a loading indicator. Small screens use a horizontal view picker and stacked result cards. Animations respect your system reduced-motion preference.
+
+To update an installed copy, rerun the one-command installer above. For a Git checkout, run `git pull`. Stop the old web server with Ctrl+C, run `!web` again, and refresh your browser.

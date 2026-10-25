@@ -48,7 +48,7 @@ class Client:
             url += "?" + urllib.parse.urlencode(query)
         request = urllib.request.Request(url, headers={
             "Authorization": self.key, "Accept": "application/json",
-            "User-Agent": "valorant-tracker-cli/0.4.0",
+            "User-Agent": "valorant-tracker-cli/0.5.0",
         })
         try:
             with self.opener(request, timeout=20) as response:
@@ -260,7 +260,7 @@ def port_number(value):
 
 def parser():
     p = argparse.ArgumentParser(description="VALORANT player tracker powered by HenrikDev. Use for yourself or consenting players.")
-    p.add_argument("--version", action="version", version="%(prog)s 0.4.0")
+    p.add_argument("--version", action="version", version="%(prog)s 0.5.0")
     commands = p.add_subparsers(dest="command", required=True)
     for command, description in [("profile", "Account details"), ("rank", "Current rank and peak"),
                                  ("matches", "Recent matches and personal performance"),
